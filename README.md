@@ -16,6 +16,11 @@ Heals are tracked the same way.
 
 ![Alt text](heal.png?raw=true "Title")
 
+## Installation
+Install by extracting the folder RealDamage-0.1\RealDamage to the _classic_\Interface\AddOns folder in your world of warcraft installation directory.
+
+Download [RealDamage-0.1](https://github.com/WOFD/RealDamage/archive/0.1.zip).
+
 ## Limitations
 In classic Blizzard brought over the much improved addon API from retail but limited some functionality especially when it comes to spellranks etc. This mod does a fairly good job at detecting which rank is cast but might get confused if the player is using multiple ranks of a spell that has a DOT/HOT component at the same time. This mod will only show damage per tick for channelled spells and for the DOT/HOT component of spells. 
 
