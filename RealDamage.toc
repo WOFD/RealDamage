@@ -1,6 +1,6 @@
 ## Interface: 11303
 ## Title: RealDamage
-## Notes: WoW Classic addon to track how the amount dealt or healed by spells and abilities.
+## Notes: WoW Classic addon that tracks the amount dealt or healed by spells and abilities
 ## Author: Yoshana
 ## Version: 0.1
 ## SavedVariablesPerCharacter: RealDamageDatabase, RealDamageTargetDatabase
