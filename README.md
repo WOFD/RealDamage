@@ -21,7 +21,7 @@ Heals are tracked the same way.
 ## Installation
 Install by extracting the folder RealDamage inside RealDamage-0.2.zip to the _classic_\Interface\AddOns folder in your world of warcraft installation directory.
 
-Download [RealDamage-0.2](https://github.com/WOFD/RealDamage/archive/0.2.zip).
+Download [RealDamage-0.2.zip](https://github.com/WOFD/RealDamage/releases/download/0.2/RealDamage-02.zip).
 
 Important: If you are upgrading from a previous install you need to type the following command in the gamechat to reset the addon since  the database is not backward compatible.
 
