@@ -6,10 +6,12 @@ The addon assumes nothing and has no previous knowledge about spells and abiliti
 ## Global tracking!
 By default the addon tracks the last 250 spells and abilities against all mobs and compute statistics. The number is big enough that stats will be kept fairly accurate while also small enough that gear upgrades and bufs should impact the stats fairly quickly.
 
-![Alt text](frostbolt.png?raw=true "Title")
+![Alt text](fireball.png?raw=true "Fireball Damage Tracking")
 
 ## Tracking per mob !
 It also keeps statistics for the last 125 spells and abilities against each mob you have ever engaged. If you hover over an ability or spell when a target is selected it will show the statistics gathered for that specific mob. Super useful for sanity checking if you are hit capped versus ragnaros!
+
+![Alt text](fireball\_target.png?raw=true "Fireball Damage Tracking on target")
 
 ## Also track heals !
 Heals are tracked the same way.
