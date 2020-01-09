@@ -9,7 +9,7 @@ By default the addon tracks the last 250 spells and abilities against all mobs a
 ![flamestike](flamestrike.png?raw=true "Flamestrike Damage Tracking")
 
 ## Tracking per mob !
-It also keeps statistics for the last 125 spells and abilities against each mob you have ever engaged. If you hover over an ability or spell when a target is selected it will show the statistics gathered for that specific mob. Super useful for sanity checking if you are hit capped versus ragnaros!
+It also keeps statistics for the last 125 spells and abilities against the last 250 mob types you have engaged. If you hover over an ability or spell when a target is selected it will show the statistics gathered for that specific mob. Super useful for sanity checking if you are hit capped versus ragnaros!
 
 ![fireball](fireball\_target.png?raw=true "Fireball Damage Tracking on target")
 
@@ -19,11 +19,11 @@ Heals are tracked the same way.
 ![heal](heal.png?raw=true "Title")
 
 ## Installation
-Install by extracting the folder RealDamage inside RealDamage-0.2.zip to the _classic_\Interface\AddOns folder in your world of warcraft installation directory.
+Install by extracting the folder RealDamage inside RealDamage-0.3.zip to the _classic_\Interface\AddOns folder in your world of warcraft installation directory.
 
-Download [RealDamage-0.2.1.zip](https://github.com/WOFD/RealDamage/releases/download/0.2.1b/RealDamage-0.2.1.zip).
+Download [RealDamage-0.3.zip](https://github.com/WOFD/RealDamage/releases/download/3.0b/RealDamage-0.3.zip).
 
-Important: If you are upgrading from the alpha build you need to type the following command in the gamechat to reset the addon since  the database is not backward compatible.
+Important: If you are upgrading from the alpha build you will need to type the following command in the gamechat to reset the addon since  that database is not backward compatible.
 
 <code>/realdamage reset</code>
 
