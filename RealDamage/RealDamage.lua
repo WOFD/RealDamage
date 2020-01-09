@@ -106,7 +106,7 @@ function RealDamage:InsertSpellDamageLogEvent(destTable, maxEntries, spellId, am
     end
 end
 
-function RealDamage:UpdateDamage(destTable, spellId, damageType, amount_idx, crit_flag_idx, glancing_flag_idx, crushing_flag_idx, miss_flag_idx, isOffHand, compute_dps, prefix)
+function RealDamage:UpdateDamage(destTable, spellId, damageType, amount_idx, crit_flag_idx, glancing_flag_idx, crushing_flag_idx, miss_flag_idx, isOffHand, prefix)
 
     local spellName, _, _, castTime, minRange, maxRange, _ = GetSpellInfo(spellId)
 
@@ -173,7 +173,7 @@ function RealDamage:UpdateDamage(destTable, spellId, damageType, amount_idx, cri
                 destTable[spellId][prefix.."_average_per_second"] = math.floor(average/mainSpeed + 0.5)
             end
         -- We dont compute DPS for instant and channeled spells
-        elseif castTime == 0 or RealDamageSpellDB["IsChannel"][spellId] or not compute_dps then
+        elseif castTime == 0 or RealDamageSpellDB["IsChannel"][spellId] then
             destTable[spellId][prefix.."_average_per_second"] = "N/A"
         -- For all other spells we use cast time to compute DPS
         else
@@ -236,10 +236,10 @@ function RealDamage:UpdateDamageOnHand(destTable, spellId, isOffHand)
         suffixLower = "mh"
     end 
 
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, true, "spell_"..suffixLower)
-    RealDamage:UpdateDamage(destTable, spellId, "SWING_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, true, "swing_"..suffixLower)
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, false, "spell_periodic_"..suffixLower)
-    RealDamage:UpdateDamage(destTable, spellId, "RANGE_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, true, "range_"..suffixLower)
+    RealDamage:UpdateDamage(destTable, spellId, "SPELL_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, "spell_"..suffixLower)
+    RealDamage:UpdateDamage(destTable, spellId, "SWING_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, "swing_"..suffixLower)
+    RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, "spell_periodic_"..suffixLower)
+    RealDamage:UpdateDamage(destTable, spellId, "RANGE_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, "range_"..suffixLower)
 
     destTable[spellId][suffixLower.."_enabled"] = destTable[spellId]["spell_"..suffixLower.."_enabled"] or destTable[spellId]["swing_"..suffixLower.."_enabled"] 
         or destTable[spellId]["spell_periodic_"..suffixLower.."_enabled"] or destTable[spellId]["range_"..suffixLower.."_enabled"]
@@ -260,8 +260,8 @@ function RealDamage:UpdateAllStats(destTable, spellId)
     RealDamage:UpdateDamageOnHand(destTable, spellId, false)
 
     -- Update Healing
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_HEAL", 1, 6, nil, nil, nil, nil, true, "heal")
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_HEAL", 1, 6, nil, nil, nil, nil, false, "heal_periodic")
+    RealDamage:UpdateDamage(destTable, spellId, "SPELL_HEAL", 1, 6, nil, nil, nil, nil, "heal")
+    RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_HEAL", 1, 6, nil, nil, nil, nil, "heal_periodic")
 
 end
 
@@ -324,6 +324,8 @@ end
 
 function RealDamage:OnAddonLoadedEvent()
 
+    self:SetToolTipHook()
+
     if RealDamageDatabase == nil then
         RealDamageDatabase = {}
     end
@@ -338,13 +340,15 @@ function RealDamage:OnAddonLoadedEvent()
 
     if RealDamageSettings == nil then
         RealDamageSettings = {
-            DatabaseMaxEntries = 250,
-            TargetDatabaseMaxEntries = 125
+                DatabaseMaxEntries = 250,
+                TargetDatabaseMaxEntries = 125
         }
     end
 
+    RealDamageSettings["DatabaseMaxEntries"] = 250
+    RealDamageSettings["TargetDatabaseMaxEntries"] = 125
+
     RealDamage:InstallSlashCommands()
-    RealDamage:SetToolTipHook()
 
     RealDamage.Loaded = 1
     print(versionString)
@@ -441,7 +445,7 @@ function RealDamage:AddDamageTooltipLines(frame, db, spellId, data_prefix, text_
     -- Always show average damage
     if RealDamageSpellDB["IsChannel"][spellId] then
         frame:AddDoubleLine(text_prefix.."Average",average.." (channel)", 0.5, 0.5, 1, 1, 1, 1)
-    elseif RealDamageSpellDB["IsInstant"][spellId] or average_per_second == "N/A" then 
+    elseif RealDamageSpellDB["IsInstant"][spellId] then 
         frame:AddDoubleLine(text_prefix.."Average",average, 0.5, 0.5, 1, 1, 1, 1)
     else
         frame:AddDoubleLine(text_prefix.."Average", average.." ("..average_per_second.." DPS)", 0.5, 0.5, 1, 1, 1, 1)
