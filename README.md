@@ -9,7 +9,7 @@ By default the addon tracks the last 250 spells and abilities against all mobs a
 ![flamestike](flamestrike.png?raw=true "Flamestrike Damage Tracking")
 
 ## Tracking per mob !
-It also keeps statistics for the last 125 spells and abilities against the last 250 mob types you have engaged. If you hover over an ability or spell when a target is selected it will show the statistics gathered for that specific mob. Super useful for sanity checking if you are hit capped versus ragnaros!
+It also keeps statistics for the last 125 spells and abilities for the last 250 mob types you have engaged. If you hover over an ability or spell when a target is selected it will show the statistics gathered for that specific mob. Super useful for sanity checking if you are hit capped versus ragnaros!
 
 ![fireball](fireball\_target.png?raw=true "Fireball Damage Tracking on target")
 
