@@ -106,7 +106,7 @@ function RealDamage:InsertSpellDamageLogEvent(destTable, maxEntries, spellId, am
     end
 end
 
-function RealDamage:UpdateDamage(destTable, spellId, damageType, amount_idx, crit_flag_idx, glancing_flag_idx, crushing_flag_idx, miss_flag_idx, isOffHand, prefix)
+function RealDamage:UpdateDamage(destTable, spellId, damageType, amount_idx, crit_flag_idx, glancing_flag_idx, crushing_flag_idx, miss_flag_idx, isOffHand, compute_dps, prefix)
 
     local spellName, _, _, castTime, minRange, maxRange, _ = GetSpellInfo(spellId)
 
@@ -173,7 +173,7 @@ function RealDamage:UpdateDamage(destTable, spellId, damageType, amount_idx, cri
                 destTable[spellId][prefix.."_average_per_second"] = math.floor(average/mainSpeed + 0.5)
             end
         -- We dont compute DPS for instant and channeled spells
-        elseif castTime == 0 or RealDamageSpellDB["IsChannel"][spellId] then
+        elseif castTime == 0 or RealDamageSpellDB["IsChannel"][spellId] or not compute_dps then
             destTable[spellId][prefix.."_average_per_second"] = "N/A"
         -- For all other spells we use cast time to compute DPS
         else
@@ -236,10 +236,10 @@ function RealDamage:UpdateDamageOnHand(destTable, spellId, isOffHand)
         suffixLower = "mh"
     end 
 
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, "spell_"..suffixLower)
-    RealDamage:UpdateDamage(destTable, spellId, "SWING_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, "swing_"..suffixLower)
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, "spell_periodic_"..suffixLower)
-    RealDamage:UpdateDamage(destTable, spellId, "RANGE_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, "range_"..suffixLower)
+    RealDamage:UpdateDamage(destTable, spellId, "SPELL_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, true, "spell_"..suffixLower)
+    RealDamage:UpdateDamage(destTable, spellId, "SWING_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, true, "swing_"..suffixLower)
+    RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, false, "spell_periodic_"..suffixLower)
+    RealDamage:UpdateDamage(destTable, spellId, "RANGE_DAMAGE_"..suffixUpper, 1, 6, 7, 8, 9, isOffHand, true, "range_"..suffixLower)
 
     destTable[spellId][suffixLower.."_enabled"] = destTable[spellId]["spell_"..suffixLower.."_enabled"] or destTable[spellId]["swing_"..suffixLower.."_enabled"] 
         or destTable[spellId]["spell_periodic_"..suffixLower.."_enabled"] or destTable[spellId]["range_"..suffixLower.."_enabled"]
@@ -260,8 +260,8 @@ function RealDamage:UpdateAllStats(destTable, spellId)
     RealDamage:UpdateDamageOnHand(destTable, spellId, false)
 
     -- Update Healing
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_HEAL", 1, 6, nil, nil, nil, nil, "heal")
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_HEAL", 1, 6, nil, nil, nil, nil, "heal_periodic")
+    RealDamage:UpdateDamage(destTable, spellId, "SPELL_HEAL", 1, 6, nil, nil, nil, nil, true, "heal")
+    RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_HEAL", 1, 6, nil, nil, nil, nil, false, "heal_periodic")
 
 end
 
@@ -298,15 +298,16 @@ function RealDamage:InstallSlashCommands()
             print("|cff64ff3b/realdamage config:|r Show current configured values.")
             print("|cff64ff3b/realdamage DatabaseMaxEntries <1-10000>:|r Sets number of entries to be kept globally (default 250).")
             print("|cff64ff3b/realdamage TargetDatabaseMaxEntries <1-10000>:|r Sets number of entries to be kept per mob (default 125).")
+            print("|cff64ff3b/realdamage TargetDatabaseMaxMobs <1-10000>:|r Sets number of mobs to keep data for (default 250).")
         elseif string.lower(msg) == "reset" then
-            RealDamageDatabase = {}
-            RealDamageTargetDatabase = {}
-            RealDamageSpellDB = { IsChannel={}, IsInstant={} }
+            RealDamage:Reset()
+            
             print("|cffffff00Realdamage:|r Database has been reset!")
         elseif string.lower(msg) == "config" then
             print("|cffffff00Realdamage:|r DatabaseMaxEntries = "..RealDamageSettings["DatabaseMaxEntries"])
             print("|cffffff00Realdamage:|r TargetDatabaseMaxEntries = "..RealDamageSettings["TargetDatabaseMaxEntries"])
-        elseif msg == "DatabaseMaxEntries" or msg == "TargetDatabaseMaxEntries" then
+            print("|cffffff00Realdamage:|r TargetDatabaseMaxMobs = "..RealDamageSettings["TargetDatabaseMaxMobs"])
+        elseif msg == "DatabaseMaxEntries" or msg == "TargetDatabaseMaxEntries" or msg == "TargetDatabaseMaxMobs" then
             local newMax = tonumber(arg)
             if newMax == nil then
                 print("|cffffff00Realdamage:|r Invalid argument - must be number")
@@ -324,8 +325,6 @@ end
 
 function RealDamage:OnAddonLoadedEvent()
 
-    self:SetToolTipHook()
-
     if RealDamageDatabase == nil then
         RealDamageDatabase = {}
     end
@@ -334,21 +333,28 @@ function RealDamage:OnAddonLoadedEvent()
         RealDamageTargetDatabase = {}
     end
 
+    -- Add timestamp table to target database so that we can trim oldest
+    -- entries (keeps database within size limits)
+    RealDamageTargetDatabase["_ts"] = RealDamageTargetDatabase["_ts"] or {}
+
     if RealDamageSpellDB == nil then
         RealDamageSpellDB = { IsChannel={}, IsInstant={} }
     end
 
     if RealDamageSettings == nil then
         RealDamageSettings = {
-                DatabaseMaxEntries = 250,
-                TargetDatabaseMaxEntries = 125
+            DatabaseMaxEntries = 250,
+            TargetDatabaseMaxEntries = 125,
         }
     end
 
-    RealDamageSettings["DatabaseMaxEntries"] = 250
-    RealDamageSettings["TargetDatabaseMaxEntries"] = 125
+    -- Add new backward compatible option that limits number of mobs stored in the system
+    -- Using default values of 125 entries per mob this should keep the database below 10MB even
+    -- with multiple spells (theoretically although very unlikely it can reach around 30mb )
+    RealDamageSettings["TargetDatabaseMaxMobs"] = RealDamageSettings["TargetDatabaseMaxMobs"] or 250
 
     RealDamage:InstallSlashCommands()
+    RealDamage:SetToolTipHook()
 
     RealDamage.Loaded = 1
     print(versionString)
@@ -356,11 +362,42 @@ end
 
 function RealDamage:OnPlayerLogout()
 
+    -- Reduce amount of data saved to disk
+    for dest, ts in pairs(RealDamageTargetDatabase) do
+        if dest ~= "_ts" then
+            for spellId in pairs(RealDamageTargetDatabase[dest]) do
+                for key in pairs(RealDamageTargetDatabase[dest][spellId]) do
+                    if string.find(key, "^[a-z_]+$") then
+                        RealDamageTargetDatabase[dest][spellId][key] = nil
+                    end
+                end
+            end
+        end
+    end
+
 end
 
 function RealDamage:Reset(  )
     RealDamageDatabase = {}
     RealDamageTargetDatabase = {}
+    RealDamageTargetDatabase["_ts"] = {} 
+    RealDamageSpellDB = { IsChannel={}, IsInstant={} }
+end
+
+function RealDamage:TrimTargetDatabase()
+
+    -- Create a sorted timestamp table for all mob entries
+    local delete_table = {}
+    for dest, ts in pairs(RealDamageTargetDatabase["_ts"]) do
+        table.insert(delete_table, {dest, ts})
+    end
+    table.sort(delete_table, function(a,b) return a[2] > b[2] end)
+
+    -- Delete oldest entries until limit is reached
+    while #delete_table > RealDamageSettings["TargetDatabaseMaxMobs"] do
+        local dest = table.remove(delete_table)
+        RealDamageTargetDatabase[dest[1]] = nil
+    end
 end
 
 function RealDamage:OnCombatLogEvent(event, ...)
@@ -394,6 +431,8 @@ function RealDamage:OnCombatLogEvent(event, ...)
                     RealDamageTargetDatabase[destName] = {}
                 end
                 RealDamage:InsertSpellDamageLogEvent(RealDamageTargetDatabase[destName], RealDamageSettings["TargetDatabaseMaxEntries"], spellId, amount, overkill, resisted, blocked, absorbed, critical, glancing, crushing, nil, isOffHand, subevent)
+                RealDamageTargetDatabase["_ts"][destName] = time()
+                RealDamage:TrimTargetDatabase()
             end
         
         elseif subevent == "SPELL_MISSED" or subevent == "SPELL_PERIODIC_MISSED" or subevent == "RANGE_MISSED" or subevent == "SWING_MISSED" then
@@ -419,6 +458,9 @@ function RealDamage:OnCombatLogEvent(event, ...)
                     RealDamageTargetDatabase[destName] = {}
                 end
                 RealDamage:InsertSpellDamageLogEvent(RealDamageTargetDatabase[destName], RealDamageSettings["DatabaseMaxEntries"], spellId, 0, 0, 0, 0, 0, false, false, false, missType, isOffHand, hit_table_key)
+                RealDamageTargetDatabase["_ts"][destName] = time()
+                RealDamage:TrimTargetDatabase()
+
             end
         elseif subevent == "SPELL_HEAL" or subevent == "SPELL_PERIODIC_HEAL" then
             local _, spellName, spellSchool, amount, overHealing, absorbed, critical = select(12, ...)          
@@ -445,7 +487,7 @@ function RealDamage:AddDamageTooltipLines(frame, db, spellId, data_prefix, text_
     -- Always show average damage
     if RealDamageSpellDB["IsChannel"][spellId] then
         frame:AddDoubleLine(text_prefix.."Average",average.." (channel)", 0.5, 0.5, 1, 1, 1, 1)
-    elseif RealDamageSpellDB["IsInstant"][spellId] then 
+    elseif RealDamageSpellDB["IsInstant"][spellId] or average_per_second == "N/A" then 
         frame:AddDoubleLine(text_prefix.."Average",average, 0.5, 0.5, 1, 1, 1, 1)
     else
         frame:AddDoubleLine(text_prefix.."Average", average.." ("..average_per_second.." DPS)", 0.5, 0.5, 1, 1, 1, 1)
@@ -630,8 +672,8 @@ local RealDamageFrame = CreateFrame("Frame")
         RealDamage:OnCombatLogEvent(event, CombatLogGetCurrentEventInfo())
     elseif event == "ADDON_LOADED" and arg1 == "RealDamage" then
         RealDamage:OnAddonLoadedEvent()
-    --elseif event == "PLAYER_LOGOUT" then
-    --  RealDamage:OnPlayerLogout()
+    elseif event == "PLAYER_LOGOUT" then
+        RealDamage:OnPlayerLogout()
     elseif event == "UNIT_SPELLCAST_SENT" then
         RealDamage:OnSpellcastSentEvent(arg1, arg3)
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
