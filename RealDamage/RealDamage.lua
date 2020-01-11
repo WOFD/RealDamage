@@ -1,9 +1,13 @@
 RealDamage = { }
-RealDamage.Loaded = 0
+RealDamage.loaded = 0
 RealDamage.currentCast = nil
 RealDamage.completedCasts = {}
+RealDamage.debugFlag = false
+RealDamage.updateSpell = {}
+RealDamage.version = 0.4
 
-local versionString = "|cffffff55RealDamage|r |cffff88880.1|r by |cff88ffffYoshana|r"
+local lastCompatibleVersion = 0.4
+local versionString = "|cffffff55RealDamage|r |cffff8888"..tostring(RealDamage.version).."|r by |cff88ffffYoshana|r"
 
 local function TablePrint(t, n)
     if n==nil then
@@ -69,21 +73,7 @@ end
 function RealDamage:CreateSpellIdEntry( destTable, spellId )
     if destTable[spellId] == nil then
         destTable[spellId] = {}
-        destTable[spellId]["name"] = spellName
-
-        destTable[spellId]["SWING_DAMAGE_MH"] = {}
-        destTable[spellId]["SPELL_DAMAGE_MH"] = {}
-        destTable[spellId]["SPELL_PERIODIC_DAMAGE_MH"] = {}
-        destTable[spellId]["RANGE_DAMAGE_MH"] = {}
-
-        destTable[spellId]["SWING_DAMAGE_OH"] = {}
-        destTable[spellId]["SPELL_DAMAGE_OH"] = {}
-        destTable[spellId]["SPELL_PERIODIC_DAMAGE_OH"] = {}
-        destTable[spellId]["RANGE_DAMAGE_OH"] = {}
-
-        destTable[spellId]["SPELL_HEAL"] = {}
-        destTable[spellId]["SPELL_PERIODIC_HEAL"] = {}
-        
+        destTable[spellId]["name"] = spellName        
     end
 end
 
@@ -100,17 +90,29 @@ function RealDamage:InsertSpellDamageLogEvent(destTable, maxEntries, spellId, am
         key = eventType.."_MH"
     end
 
+    -- These lines hugely reduces the database footprint
+    if critical == false then critical = nil end
+    if glancing == false then glancing = nil end
+    if crushing == false then crushing = nil end
+    if overkill == -1 then overkill = nil end
+
+    RealDamage:Debug(maxEntries, spellId, amount, overkill, resisted, blocked, absorbed, critical, glancing, crushing, missType, isOffHand, key)
+    if destTable[spellId][key] == nil then
+        destTable[spellId][key] = {}
+    end
     table.insert(destTable[spellId][key], {amount, overkill, resisted, blocked, absorbed, critical, glancing, crushing, missType })
     while #destTable[spellId][key] > maxEntries do
         table.remove(destTable[spellId][key], 1)
     end
+
+    RealDamage.updateSpell[spellId..tostring(destTable)] = true
 end
 
 function RealDamage:UpdateDamage(destTable, spellId, damageType, amount_idx, crit_flag_idx, glancing_flag_idx, crushing_flag_idx, miss_flag_idx, isOffHand, compute_dps, prefix)
 
     local spellName, _, _, castTime, minRange, maxRange, _ = GetSpellInfo(spellId)
 
-    if #destTable[spellId][damageType] == 0 then
+    if destTable[spellId][damageType] == nil or #destTable[spellId][damageType] == 0 then
         destTable[spellId][prefix.."_enabled"] = false
         destTable[spellId][prefix.."_table_count"] = 0
     else
@@ -210,7 +212,7 @@ end
 
 function RealDamage:UpdateMitigation(destTable, spellId, type, prefix)
     
-    if #destTable[spellId][type] > 0 then
+    if destTable[spellId][type] ~= nil and #destTable[spellId][type] > 0 then
         local mitigationList = {resisted=3, blocked=4, absorbed=5}
         for mitigationType, mitigationIdx in pairs(mitigationList) do
             mitigated_average = math.floor(tableIdxAvgCompute(destTable[spellId][type], resist_idx) + 0.5)
@@ -255,26 +257,38 @@ end
 
 function RealDamage:UpdateAllStats(destTable, spellId)
 
-    -- Update main and off hand
-    RealDamage:UpdateDamageOnHand(destTable, spellId, true)
-    RealDamage:UpdateDamageOnHand(destTable, spellId, false)
+    local updateKey = spellId..tostring(destTable)
 
-    -- Update Healing
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_HEAL", 1, 6, nil, nil, nil, nil, true, "heal")
-    RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_HEAL", 1, 6, nil, nil, nil, nil, false, "heal_periodic")
+    if RealDamage.updateSpell[updateKey] == nil or RealDamage.updateSpell[updateKey]  then
 
+        RealDamage:Debug("Updating stats for spell "..tostring(spellId))
+
+        -- Update main and off hand
+        RealDamage:UpdateDamageOnHand(destTable, spellId, true)
+        RealDamage:UpdateDamageOnHand(destTable, spellId, false)
+
+        -- Update Healing
+        RealDamage:UpdateDamage(destTable, spellId, "SPELL_HEAL", 1, 6, nil, nil, nil, nil, true, "heal")
+        RealDamage:UpdateDamage(destTable, spellId, "SPELL_PERIODIC_HEAL", 1, 6, nil, nil, nil, nil, false, "heal_periodic")
+
+        -- Flag spell as updated
+        RealDamage.updateSpell[updateKey] = false
+    end
 end
 
 function RealDamage:OnSpellcastSentEvent(src, castGUID )
     if src == "player" then
         self.currentCast = castGUID
+        RealDamage:Debug("SpellCastSent", castGUID)
     end
 end
 
 function RealDamage:OnSpellcastSuccededEvent(castGUID, spellId)
     if self.currentCast == castGUID then
         local name, _, _, castTime, minRange, maxRange, _ = GetSpellInfo(spellId)
-        self.completedCasts[name] = spellId
+        RealDamage:Debug("SpellCastSuccess", name, spellId, castGUID)
+        -- TOFIX: Arcane missiles rank 1 - the channeling component is called "Arcane Missile" 
+        RealDamage.completedCasts[name] = spellId
         if castTime == 0 then
             RealDamageSpellDB["IsInstant"][spellId] = true
         end
@@ -301,8 +315,10 @@ function RealDamage:InstallSlashCommands()
             print("|cff64ff3b/realdamage TargetDatabaseMaxMobs <1-10000>:|r Sets number of mobs to keep data for (default 250).")
         elseif string.lower(msg) == "reset" then
             RealDamage:Reset()
-            
             print("|cffffff00Realdamage:|r Database has been reset!")
+        elseif string.lower(msg) == "debug" then
+            RealDamage.debugFlag = not RealDamage.debugFlag
+            print("|cffffff00Realdamage:|r Debug mode is "..tostring(RealDamage.debugFlag))
         elseif string.lower(msg) == "config" then
             print("|cffffff00Realdamage:|r DatabaseMaxEntries = "..RealDamageSettings["DatabaseMaxEntries"])
             print("|cffffff00Realdamage:|r TargetDatabaseMaxEntries = "..RealDamageSettings["TargetDatabaseMaxEntries"])
@@ -325,28 +341,38 @@ end
 
 function RealDamage:OnAddonLoadedEvent()
 
-    if RealDamageDatabase == nil then
+    local resetDatabase = false
+
+    print(versionString)
+
+    if RealDamageSettings == nil then
+        RealDamageSettings = {
+            DatabaseMaxEntries = 250,
+            TargetDatabaseMaxEntries = 125
+        }
+        resetDatabase = true
+    elseif RealDamageSettings["Version"] == nil or RealDamageSettings["Version"] < lastCompatibleVersion then
+        print("|cffffff00Realdamage|r. Upgrading to "..tostring(RealDamage.version).." from incompatible version. Resetting database.")
+        resetDatabase = true
+    end
+
+    RealDamageSettings["Version"] = RealDamage.version
+
+    if RealDamageSpellDB == nil or resetDatabase then
+        RealDamageSpellDB = { IsChannel={}, IsInstant={} }
+    end
+
+    if RealDamageDatabase == nil or resetDatabase then
         RealDamageDatabase = {}
     end
 
-    if RealDamageTargetDatabase == nil then
+    if RealDamageTargetDatabase == nil or resetDatabase then
         RealDamageTargetDatabase = {}
     end
 
     -- Add timestamp table to target database so that we can trim oldest
     -- entries (keeps database within size limits)
     RealDamageTargetDatabase["_ts"] = RealDamageTargetDatabase["_ts"] or {}
-
-    if RealDamageSpellDB == nil then
-        RealDamageSpellDB = { IsChannel={}, IsInstant={} }
-    end
-
-    if RealDamageSettings == nil then
-        RealDamageSettings = {
-            DatabaseMaxEntries = 250,
-            TargetDatabaseMaxEntries = 125,
-        }
-    end
 
     -- Add new backward compatible option that limits number of mobs stored in the system
     -- Using default values of 125 entries per mob this should keep the database below 10MB even
@@ -356,22 +382,27 @@ function RealDamage:OnAddonLoadedEvent()
     RealDamage:InstallSlashCommands()
     RealDamage:SetToolTipHook()
 
-    RealDamage.Loaded = 1
-    print(versionString)
+    RealDamage.loaded = 1
+    
+end
+
+function RealDamage:CleanDB(db)
+    for spellId in pairs(db) do
+        for key in pairs(db[spellId]) do
+            if string.find(key, "^[a-z_]+$") then
+                db[spellId][key] = nil
+            end
+        end
+    end
 end
 
 function RealDamage:OnPlayerLogout()
 
     -- Reduce amount of data saved to disk
-    for dest, ts in pairs(RealDamageTargetDatabase) do
+    RealDamage:CleanDB(RealDamageDatabase)
+    for dest in pairs(RealDamageTargetDatabase) do
         if dest ~= "_ts" then
-            for spellId in pairs(RealDamageTargetDatabase[dest]) do
-                for key in pairs(RealDamageTargetDatabase[dest][spellId]) do
-                    if string.find(key, "^[a-z_]+$") then
-                        RealDamageTargetDatabase[dest][spellId][key] = nil
-                    end
-                end
-            end
+            RealDamage:CleanDB(RealDamageTargetDatabase[dest])
         end
     end
 
@@ -403,10 +434,11 @@ end
 function RealDamage:OnCombatLogEvent(event, ...)
     local timestamp, subevent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags = ...
 
-    --print(timestamp, subevent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags)
     local playerGUID = UnitGUID("player")
-    if RealDamage.Loaded and sourceGUID == playerGUID then
-        
+    if RealDamage.loaded and sourceGUID == playerGUID then
+
+        RealDamage:Debug(timestamp, subevent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags)
+
         if subevent == "SPELL_DAMAGE" or subevent == "SPELL_PERIODIC_DAMAGE" or subevent == "RANGE_DAMAGE" or subevent == "SWING_DAMAGE" then
             local spellId, spellName, spellSchool, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing, isOffHand
 
@@ -416,9 +448,10 @@ function RealDamage:OnCombatLogEvent(event, ...)
                 spellName = "Auto-Attack"
             else
                 spellId, spellName, spellSchool, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing, isOffHand = select(12, ...)
-                if self.completedCasts[spellName] ~= nil then
-                    spellId = self.completedCasts[spellName]
+                if RealDamage.completedCasts[spellName] ~= nil then
+                    spellId = RealDamage.completedCasts[spellName]
                 else
+                    RealDamage:Debug("Unknown spell cast", spellName, spellSchool, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing, isOffHand)
                     return
                 end
             end
@@ -442,11 +475,14 @@ function RealDamage:OnCombatLogEvent(event, ...)
                 spellId = 6603
                 spellName = "Auto-Attack"
                 missType, isOffHand = select(12, ...) 
-            elseif self.completedCasts[spellName] ~= nil then
-                _, spellName, spellSchool, missType, isOffHand = select(12, ...)
-                spellId = self.completedCasts[spellName]
             else
-                return
+                _, spellName, spellSchool, missType, isOffHand = select(12, ...)
+                if RealDamage.completedCasts[spellName] ~= nil then
+                    spellId = RealDamage.completedCasts[spellName]
+                else
+                    RealDamage:Debug("Unknown missed spell", spellName, spellSchool, missType, isOffHand)
+                    return
+                end
             end
 
             local hit_table_key = string.match(subevent, "(.*)_MISSED").."_DAMAGE"
@@ -460,13 +496,12 @@ function RealDamage:OnCombatLogEvent(event, ...)
                 RealDamage:InsertSpellDamageLogEvent(RealDamageTargetDatabase[destName], RealDamageSettings["DatabaseMaxEntries"], spellId, 0, 0, 0, 0, 0, false, false, false, missType, isOffHand, hit_table_key)
                 RealDamageTargetDatabase["_ts"][destName] = time()
                 RealDamage:TrimTargetDatabase()
-
             end
         elseif subevent == "SPELL_HEAL" or subevent == "SPELL_PERIODIC_HEAL" then
             local _, spellName, spellSchool, amount, overHealing, absorbed, critical = select(12, ...)          
             
-            if self.completedCasts[spellName] ~= nil then
-                spellId = self.completedCasts[spellName]
+            if RealDamage.completedCasts[spellName] ~= nil then
+                spellId = RealDamage.completedCasts[spellName]
                 RealDamage:InsertSpellDamageLogEvent(RealDamageDatabase, RealDamageSettings["DatabaseMaxEntries"], spellId, amount, overHealing, 0, 0, absorbed, critical, false, false, nil, nil, subevent)
             end
         end
@@ -540,7 +575,7 @@ function RealDamage:SetToolTipHook()
     GameTooltip:HookScript("OnTooltipSetSpell", function(self)
         local name, spellId = self:GetSpell()
 
-        if spellId and RealDamage.Loaded and RealDamageDatabase and RealDamageTargetDatabase then
+        if spellId and RealDamage.loaded and RealDamageDatabase and RealDamageTargetDatabase then
 
             local targetName = GetUnitName("target")
             local db = RealDamageDatabase
@@ -655,6 +690,12 @@ function RealDamage:SetToolTipHook()
             
         end
     end)
+end
+
+function RealDamage:Debug(...)
+    if RealDamage.debugFlag then
+        print(...)
+    end
 end
 
 local RealDamageFrame = CreateFrame("Frame")
