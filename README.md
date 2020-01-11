@@ -19,13 +19,9 @@ Heals are tracked the same way.
 ![heal](heal.png?raw=true "Title")
 
 ## Installation
-Install by extracting the folder RealDamage inside RealDamage-0.3.zip to the _classic_\Interface\AddOns folder in your world of warcraft installation directory.
+Install by extracting the folder RealDamage inside RealDamage-0.4.zip to the _classic_\Interface\AddOns folder in your world of warcraft installation directory.
 
-Download [RealDamage-0.3.zip](https://github.com/WOFD/RealDamage/releases/download/3.0b/RealDamage-0.3.zip).
-
-Important: If you are upgrading from the alpha build you will need to type the following command in the gamechat to reset the addon since  that database is not backward compatible.
-
-<code>/realdamage reset</code>
+Download [RealDamage-0.4.zip](https://github.com/WOFD/RealDamage/releases/download/0.4/RealDamage-0.4.zip).
 
 ## Advanced Configuration
 To keep database size reasonable the addon is by default configured to limit per mob statistics to the last 250 mobs engaged. This limit along with other limits can be configured on a per character basis using the slash menu available ingame. Type the following command for a list of supported settings:
