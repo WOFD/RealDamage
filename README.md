@@ -4,7 +4,7 @@ WoW Classic addon that tracks the amount of damage dealt or healed by attacks, s
 ## Learns on the job
 The addon assumes nothing and has no previous knowledge about spells and abilities in the game. Instead it learn what spells and abilities do by monitoring the combat log. This eliminates all bias and means that nothing will be added to spell tooltips before you start casting. Sweet :) 
 
-*In this screenshot Flamestike been cast twice. The first time it hit for 99 damage. The second time it critted for 156. The average damage per cast is thus 128 which with a 3 second cast yielding 43 DPS. Additionally it added DOT component dealing 17 damage per tick. More casts will add damage ranges and the accuracy of the critical percentage will increase.*
+*In this screenshot Flamestike has only been cast twice. The first time it hit for 99 damage. The second time it critted for 156. The average damage per cast is thus 128 which with a 3 second cast yielding 43 DPS. Additionally it added DOT component dealing 17 damage per tick. More casts will add damage ranges and the accuracy of the critical percentage will increase.*
 
 ![flamestike](flamestrike.png?raw=true "Flamestrike Damage Tracking")
 
