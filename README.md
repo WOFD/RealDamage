@@ -6,17 +6,17 @@ The addon assumes nothing and has no previous knowledge about spells and abiliti
 ## Global tracking!
 By default the addon tracks the last 250 spells and abilities against all mobs and compute statistics. The number is big enough that stats will be kept fairly accurate while also small enough that gear upgrades and bufs should impact the stats fairly quickly.
 
-*In the following screenshot, Flamestike been cast twice. One time it hit for 99 damage. The second time it critted for 156. The average damage per cast is thus 128 yielding a DPS of 43. Additionally it added DOT component dealing 17 damage per tick. As more casts are observed the tooltip wille show damage ranges and the calculated critical percentage will become much more accurate.*
+*In this screenshot Flamestike been cast twice. The first time it hit for 99 damage. The second time it critted for 156. The average damage per cast is thus 128 which with a 3 second cast yielding 43 DPS. Additionally it added DOT component dealing 17 damage per tick. More casts will add damage ranges and the accuracy of the critical percentage will increase.*
 
 ![flamestike](flamestrike.png?raw=true "Flamestrike Damage Tracking")
 
 ## Tracking per mob !
-It also keeps statistics about how your last 125 spells and abilities impacted bosses and mobs. If you hover over an ability or spell when a target is selected it will show the statistics gathered for that specific mob. Super useful for sanity checking if you are hit capped versus ragnaros! 
+The addon also keeps statistics about how your last 125 spells and abilities impacted bosses and mobs. If you hover over an ability or spell when a target is selected it will show the statistics gathered for that specific mob. Super useful for sanity checking if you are hit capped versus ragnaros! 
 
 ![fireball](fireball\_target.png?raw=true "Fireball Damage Tracking on target")
 
 ## Also track heals !
-RealDamage will also compute statistics for healing spells.
+The addon also compute statistics for healing spells.
 
 ![heal](heal.png?raw=true "Title")
 
