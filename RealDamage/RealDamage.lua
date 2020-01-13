@@ -4,7 +4,7 @@ RealDamage.currentCast = nil
 RealDamage.completedCasts = {}
 RealDamage.debugFlag = false
 RealDamage.updateSpell = {}
-RealDamage.version = 0.4
+RealDamage.version = 0.5
 
 local lastCompatibleVersion = 0.4
 local versionString = "|cffffff55RealDamage|r |cffff8888"..tostring(RealDamage.version).."|r by |cff88ffffYoshana|r"
@@ -189,6 +189,7 @@ function RealDamage:UpdateDamage(destTable, spellId, damageType, amount_idx, cri
             if      (crit_flag_idx == nil or not destTable[spellId][damageType][i][crit_flag_idx])
                 and (glancing_flag_idx == nil or not destTable[spellId][damageType][i][glancing_flag_idx])
                 and (crushing_flag_idx == nil or not destTable[spellId][damageType][i][crushing_flag_idx])
+                and (miss_flag_idx == nil or not destTable[spellId][damageType][i][miss_flag_idx])
             then
                 if hit_low == nil or destTable[spellId][damageType][i][amount_idx] < hit_low then
                     hit_low = destTable[spellId][damageType][i][amount_idx]
@@ -289,9 +290,6 @@ function RealDamage:OnSpellcastSuccededEvent(castGUID, spellId)
         RealDamage:Debug("SpellCastSuccess", name, spellId, castGUID)
         -- TOFIX: Arcane missiles rank 1 - the channeling component is called "Arcane Missile" 
         RealDamage.completedCasts[name] = spellId
-        if castTime == 0 then
-            RealDamageSpellDB["IsInstant"][spellId] = true
-        end
     end
 end
 
@@ -359,7 +357,7 @@ function RealDamage:OnAddonLoadedEvent()
     RealDamageSettings["Version"] = RealDamage.version
 
     if RealDamageSpellDB == nil or resetDatabase then
-        RealDamageSpellDB = { IsChannel={}, IsInstant={} }
+        RealDamageSpellDB = { IsChannel={} }
     end
 
     if RealDamageDatabase == nil or resetDatabase then
@@ -412,7 +410,7 @@ function RealDamage:Reset(  )
     RealDamageDatabase = {}
     RealDamageTargetDatabase = {}
     RealDamageTargetDatabase["_ts"] = {} 
-    RealDamageSpellDB = { IsChannel={}, IsInstant={} }
+    RealDamageSpellDB = { IsChannel={} }
 end
 
 function RealDamage:TrimTargetDatabase()
@@ -509,6 +507,8 @@ function RealDamage:OnCombatLogEvent(event, ...)
 end
 
 function RealDamage:AddDamageTooltipLines(frame, db, spellId, data_prefix, text_prefix)
+    local spellName, _, _, castTime, minRange, maxRange, _ = GetSpellInfo(spellId)
+
     local average = db[spellId][data_prefix.."_average"] or "N/A"
     local average_per_second = db[spellId][data_prefix.."_average_per_second"] or "N/A"
     local miss_percentage = db[spellId][data_prefix.."_miss_percentage"] or "N/A"
@@ -522,7 +522,7 @@ function RealDamage:AddDamageTooltipLines(frame, db, spellId, data_prefix, text_
     -- Always show average damage
     if RealDamageSpellDB["IsChannel"][spellId] then
         frame:AddDoubleLine(text_prefix.."Average",average.." (channel)", 0.5, 0.5, 1, 1, 1, 1)
-    elseif RealDamageSpellDB["IsInstant"][spellId] or average_per_second == "N/A" then 
+    elseif castTime == 0 or average_per_second == "N/A" then
         frame:AddDoubleLine(text_prefix.."Average",average, 0.5, 0.5, 1, 1, 1, 1)
     else
         frame:AddDoubleLine(text_prefix.."Average", average.." ("..average_per_second.." DPS)", 0.5, 0.5, 1, 1, 1, 1)
