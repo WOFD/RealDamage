@@ -22,9 +22,9 @@ The addon also compute statistics for healing spells.
 ![heal](heal.png?raw=true "Title")
 
 ## Installation
-Install by extracting the folder RealDamage inside RealDamage-0.4.zip to the _classic_\Interface\AddOns folder in your world of warcraft installation directory.
+Install by extracting the folder RealDamage inside RealDamage-0.5-beta.zip to the _classic_\Interface\AddOns folder in your world of warcraft installation directory.
 
-Download [RealDamage-0.4.zip](https://github.com/WOFD/RealDamage/releases/download/0.4/RealDamage-0.4.zip).
+Download [RealDamage-0.5-beta.zip](https://github.com/WOFD/RealDamage/releases/download/0.5/RealDamage-0.5-beta.zip).
 
 ## Advanced Configuration
 To keep database size reasonable the addon is by default configured to limit per mob statistics to the last 250 mobs engaged. This limit along with other limits can be configured on a per character basis using the slash menu available ingame. Type the following command for a list of supported settings:
