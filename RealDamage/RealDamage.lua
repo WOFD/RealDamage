@@ -4,7 +4,7 @@ RealDamage.currentCast = nil
 RealDamage.completedCasts = {}
 RealDamage.debugFlag = false
 RealDamage.updateSpell = {}
-RealDamage.version = 0.5
+RealDamage.version = 0.51
 
 local lastCompatibleVersion = 0.4
 local versionString = "|cffffff55RealDamage|r |cffff8888"..tostring(RealDamage.version).."|r by |cff88ffffYoshana|r"
